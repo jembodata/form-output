@@ -193,6 +193,31 @@ class ListData extends Component implements HasActions, HasSchemas, HasTable
         ];
     }
 
+    protected function calculatePercentages(array $data, Data $record = null): array
+    {
+        $calc = function ($numerator, $denominator) {
+            if (empty($denominator) || $denominator == 0) {
+                return 0;
+            }
+            return ($numerator / $denominator) * 100;
+        };
+
+        // Ambil dari input form ($data), jika tidak ada/kosong ambil dari database ($record)
+        $get = fn($key) => $data[$key] ?? ($record ? $record->{$key} : 0);
+
+        $data['pct_output_produksi_vs_planning_mtr'] = $calc($get('output_produksi_open_mtr'), $get('planning_mtr'));
+        $data['pct_output_produksi_vs_planning_ton_kabel'] = $calc($get('output_produksi_open_kabel'), $get('planning_ton_kabel'));
+        $data['pct_output_produksi_vs_planning_rp'] = $calc($get('output_produksi_open'), $get('planning'));
+
+        $data['pct_output_qc_vs_output_produksi_mtr'] = $calc($get('output_qc_transfer_mtr'), $get('output_produksi_open_mtr'));
+        $data['pct_output_qc_vs_output_produksi_rp'] = $calc($get('output_qc_transfer'), $get('output_produksi_open'));
+
+        // PERBAIKAN LOGIKA: Sebelumnya terbalik (Produksi / QC), yang benar adalah (QC / Produksi)
+        $data['pct_output_qc_vs_output_produksi_ton_kabel'] = $calc($get('output_qc_transfer_ton_kabel'), $get('output_produksi_open_kabel'));
+
+        return $data;
+    }
+
     public function table(Table $table): Table
     {
         return $table
@@ -357,7 +382,11 @@ class ListData extends Component implements HasActions, HasSchemas, HasTable
                 Actions\CreateAction::make()
                     ->createAnother(false)
                     ->schema($this->dataFormSchema())
-                    ->slideOver(),
+                    ->slideOver()
+                    ->mutateFormDataUsing(function (array $data): array {
+                        // Kalkulasi otomatis saat Create
+                        return $this->calculatePercentages($data);
+                    }),
             ])
             ->recordActions([
                 Actions\ViewAction::make()
@@ -365,7 +394,11 @@ class ListData extends Component implements HasActions, HasSchemas, HasTable
                     ->slideOver(),
                 Actions\EditAction::make()
                     ->schema($this->dataFormSchema())
-                    ->slideOver(),
+                    ->slideOver()
+                    ->mutateFormDataUsing(function (array $data, Data $record): array {
+                        // Kalkulasi ulang otomatis saat Edit
+                        return $this->calculatePercentages($data, $record);
+                    }),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
