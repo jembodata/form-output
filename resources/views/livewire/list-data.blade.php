@@ -5,7 +5,7 @@
         </x-slot>
 
         <x-slot name="description">
-            demo.
+            . . . . . . .
         </x-slot>
 
         {{ $this->table }}

@@ -18,10 +18,12 @@ use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
-use Livewire\Component;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Fieldset;
+use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Filters\Filter;
+use Filament\Tables\Enums\PaginationMode;
+use Livewire\Component;
 
 class ListData extends Component implements HasActions, HasSchemas, HasTable
 {
@@ -57,6 +59,7 @@ class ListData extends Component implements HasActions, HasSchemas, HasTable
                     Fieldset::make('Metrik Nilai (Rupiah)')
                         ->schema([
                             Forms\Components\TextInput::make('planning')
+                                ->default(0)
                                 ->label('Planning')
                                 ->prefix('Rp')
                                 ->mask(RawJs::make('$money($input)'))
@@ -65,6 +68,7 @@ class ListData extends Component implements HasActions, HasSchemas, HasTable
                                 ->required(),
 
                             Forms\Components\TextInput::make('output_produksi_open')
+                                ->default(0)
                                 ->label('Output Produksi (Open)')
                                 ->prefix('Rp')
                                 ->mask(RawJs::make('$money($input)'))
@@ -73,6 +77,7 @@ class ListData extends Component implements HasActions, HasSchemas, HasTable
                                 ->required(),
 
                             Forms\Components\TextInput::make('output_qc_transfer')
+                                ->default(0)
                                 ->label('Output QC (Transfer)')
                                 ->prefix('Rp')
                                 ->mask(RawJs::make('$money($input)'))
@@ -81,6 +86,7 @@ class ListData extends Component implements HasActions, HasSchemas, HasTable
                                 ->required(),
 
                             Forms\Components\TextInput::make('under_testing')
+                                ->default(0)
                                 ->label('Under Testing')
                                 ->prefix('Rp')
                                 ->mask(RawJs::make('$money($input)'))
@@ -92,18 +98,21 @@ class ListData extends Component implements HasActions, HasSchemas, HasTable
                     Fieldset::make('Metrik Material (Ton Kabel)')
                         ->schema([
                             Forms\Components\TextInput::make('output_produksi_open_kabel')
+                                ->default(0)
                                 ->label('Prod. (Open) Kabel')
                                 ->numeric()
                                 ->suffix('Ton Kabel')
                                 ->required(),
 
                             Forms\Components\TextInput::make('output_produksi_open_cu')
+                                ->default(0)
                                 ->label('Prod. (Open) Cu')
                                 ->numeric()
                                 ->suffix('Ton Kabel')
                                 ->required(),
 
                             Forms\Components\TextInput::make('output_produksi_open_al')
+                                ->default(0)
                                 ->label('Prod. (Open) AL')
                                 ->numeric()
                                 ->suffix('Ton Kabel')
@@ -117,37 +126,38 @@ class ListData extends Component implements HasActions, HasSchemas, HasTable
                 ->schema([
                     Fieldset::make('Planning Tambahan')
                         ->schema([
-                            Forms\Components\TextInput::make('planning_mtr')->label('Planning Mtr')->numeric(),
-                            Forms\Components\TextInput::make('planning_ton_kabel')->label('Planning Ton Kabel')->numeric(),
+                            Forms\Components\TextInput::make('planning_mtr')->label('Planning Mtr')->numeric()->default(0),
+                            Forms\Components\TextInput::make('planning_ton_kabel')->label('Planning Ton Kabel')->numeric()->default(0),
                         ])->columns(2),
 
                     Fieldset::make('Output Produksi (Open) Tambahan')
                         ->schema([
-                            Forms\Components\TextInput::make('output_produksi_open_mtr')->label('Output Produksi (Open) Mtr')->numeric(),
-                            Forms\Components\TextInput::make('output_produksi_open_rp_ton_cu')->label('Output Produksi (Open) Rp Ton Cu')->numeric()->prefix('Rp'),
-                            Forms\Components\TextInput::make('output_produksi_open_rp_ton_al')->label('Output Produksi (Open) Rp Ton AL')->numeric()->prefix('Rp'),
+                            Forms\Components\TextInput::make('output_produksi_open_mtr')->label('Output Produksi (Open) Mtr')->numeric()->default(0),
+                            Forms\Components\TextInput::make('output_produksi_open_rp_ton_cu')->label('Output Produksi (Open) Rp Ton Cu')->numeric()->prefix('Rp')->default(0),
+                            Forms\Components\TextInput::make('output_produksi_open_rp_ton_al')->label('Output Produksi (Open) Rp Ton AL')->numeric()->prefix('Rp')->default(0),
                         ])->columns(3),
 
                     Fieldset::make('Output QC (Transfer) Tambahan')
                         ->schema([
-                            Forms\Components\TextInput::make('output_qc_transfer_mtr')->label('Output QC (Transfer) Mtr')->numeric(),
-                            Forms\Components\TextInput::make('output_qc_transfer_ton_kabel')->label('Output QC (Transfer) Ton Kabel')->numeric(),
-                            Forms\Components\TextInput::make('output_qc_transfer_cu')->label('Output QC (Transfer) Cu')->numeric(),
-                            Forms\Components\TextInput::make('output_qc_transfer_al')->label('Output QC (Transfer) AL')->numeric(),
+                            Forms\Components\TextInput::make('output_qc_transfer_mtr')->label('Output QC (Transfer) Mtr')->numeric()->default(0),
+                            Forms\Components\TextInput::make('output_qc_transfer_ton_kabel')->label('Output QC (Transfer) Ton Kabel')->numeric()->default(0),
+                            Forms\Components\TextInput::make('output_qc_transfer_cu')->label('Output QC (Transfer) Cu')->numeric()->default(0),
+                            Forms\Components\TextInput::make('output_qc_transfer_al')->label('Output QC (Transfer) AL')->numeric()->default(0),
                         ])->columns(2),
 
                     Fieldset::make('Under Testing Tambahan')
                         ->schema([
-                            Forms\Components\TextInput::make('under_testing_mtr')->label('Under Testing Mtr')->numeric(),
-                            Forms\Components\TextInput::make('under_testing_ton_kabel')->label('Under Testing Ton Kabel')->numeric(),
-                            Forms\Components\TextInput::make('undertesting_open_ton_cu')->label('Undertesting (Open) Ton Cu')->numeric(),
-                            Forms\Components\TextInput::make('under_testing_open_ton_al')->label('Under Testing (Open) Ton AL')->numeric(),
+                            Forms\Components\TextInput::make('under_testing_mtr')->label('Under Testing Mtr')->numeric()->default(0),
+                            Forms\Components\TextInput::make('under_testing_ton_kabel')->label('Under Testing Ton Kabel')->numeric()->default(0),
+                            Forms\Components\TextInput::make('undertesting_open_ton_cu')->label('Undertesting (Open) Ton Cu')->numeric()->default(0),
+                            Forms\Components\TextInput::make('under_testing_open_ton_al')->label('Under Testing (Open) Ton AL')->numeric()->default(0),
                         ])->columns(2),
 
                     Section::make('Persentase Pencapaian (%)')
                         ->description('Nilai pada kolom ini akan dihitung otomatis oleh sistem setelah data disimpan.')
                         ->schema([
                             Forms\Components\TextInput::make('pct_output_produksi_vs_planning_mtr')
+                                ->default(0)
                                 ->label('% Output Produksi vs Planning Mtr')
                                 ->numeric()
                                 ->suffix('%')
@@ -155,6 +165,7 @@ class ListData extends Component implements HasActions, HasSchemas, HasTable
                                 ->dehydrated(false),
 
                             Forms\Components\TextInput::make('pct_output_produksi_vs_planning_ton_kabel')
+                                ->default(0)
                                 ->label('% Output Produksi vs Planning Ton Kabel')
                                 ->numeric()
                                 ->suffix('%')
@@ -162,6 +173,7 @@ class ListData extends Component implements HasActions, HasSchemas, HasTable
                                 ->dehydrated(false),
 
                             Forms\Components\TextInput::make('pct_output_produksi_vs_planning_rp')
+                                ->default(0)
                                 ->label('% Output Produksi vs Planning Rp.')
                                 ->numeric()
                                 ->suffix('%')
@@ -169,6 +181,7 @@ class ListData extends Component implements HasActions, HasSchemas, HasTable
                                 ->dehydrated(false),
 
                             Forms\Components\TextInput::make('pct_output_qc_vs_output_produksi_mtr')
+                                ->default(0)
                                 ->label('% Output QC vs Output Produksi Mtr')
                                 ->numeric()
                                 ->suffix('%')
@@ -176,6 +189,7 @@ class ListData extends Component implements HasActions, HasSchemas, HasTable
                                 ->dehydrated(false),
 
                             Forms\Components\TextInput::make('pct_output_qc_vs_output_produksi_ton_kabel')
+                                ->default(0)
                                 ->label('% Output QC vs Output Produksi Ton Kabel')
                                 ->numeric()
                                 ->suffix('%')
@@ -183,6 +197,7 @@ class ListData extends Component implements HasActions, HasSchemas, HasTable
                                 ->dehydrated(false),
 
                             Forms\Components\TextInput::make('pct_output_qc_vs_output_produksi_rp')
+                                ->default(0)
                                 ->label('% Output QC vs Output Produksi Rp.')
                                 ->numeric()
                                 ->suffix('%')
@@ -221,6 +236,7 @@ class ListData extends Component implements HasActions, HasSchemas, HasTable
     public function table(Table $table): Table
     {
         return $table
+            ->paginationMode(PaginationMode::Simple)
             ->deferFilters(false)
             ->query(Data::query())
             ->defaultSort('created_at', direction: 'desc')
@@ -273,13 +289,13 @@ class ListData extends Component implements HasActions, HasSchemas, HasTable
                             ])
                             ->native(false)
                             ->default('per_hari')
-                            ->reactive(),
+                            ->live(),
 
                         Forms\Components\DatePicker::make('date')
                             ->label('Tanggal')
                             ->closeOnDateSelection()
                             ->native(false)
-                            ->reactive()
+                            ->live()
                             ->visible(fn(callable $get) => $get('mode') === 'per_hari'),
 
                         Forms\Components\DatePicker::make('month')
@@ -289,21 +305,21 @@ class ListData extends Component implements HasActions, HasSchemas, HasTable
                             ->closeOnDateSelection()
                             ->native()
                             ->extraInputAttributes(['type' => 'month'])
-                            ->reactive()
+                            ->live()
                             ->visible(fn(callable $get) => $get('mode') === 'per_bulan'),
 
                         Forms\Components\DatePicker::make('date_from')
                             ->label('Dari')
                             ->closeOnDateSelection()
                             ->native(false)
-                            ->reactive()
+                            ->live()
                             ->visible(fn(callable $get) => $get('mode') === 'rentang'),
 
                         Forms\Components\DatePicker::make('date_to')
                             ->label('Sampai')
                             ->closeOnDateSelection()
                             ->native(false)
-                            ->reactive()
+                            ->live()
                             ->visible(fn(callable $get) => $get('mode') === 'rentang'),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
@@ -409,6 +425,7 @@ class ListData extends Component implements HasActions, HasSchemas, HasTable
 
     public function render(): View
     {
-        return view('livewire.list-data');
+        return view('livewire.list-data')
+            ->layout('components.layouts.app');
     }
 }
