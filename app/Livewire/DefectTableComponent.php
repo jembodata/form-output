@@ -197,6 +197,7 @@ class DefectTableComponent extends Component implements HasActions, HasSchemas, 
     {
         return $table
             ->paginationMode(PaginationMode::Simple)
+            ->deferFilters(false)
             ->query(Defect::query())
             ->defaultSort('tanggal', 'desc')
             ->columns([

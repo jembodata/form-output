@@ -2,112 +2,107 @@
 
 namespace App\Livewire;
 
-use App\Models\Scrap;
+use App\Models\Backorder;
 use Closure;
-use Carbon\Carbon;
 use Filament\Forms;
 use Filament\Tables;
 use Filament\Actions;
+use Filament\Forms\Concerns\InteractsWithForms;
+use Filament\Forms\Contracts\HasForms;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
-use Filament\Schemas\Contracts\HasSchemas;
-use Filament\Schemas\Concerns\InteractsWithSchemas;
+use Filament\Schemas\Components;
+use Filament\Support\RawJs;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
-use Filament\Schemas\Components;
-use Filament\Tables\Enums\PaginationMode;
-use Filament\Tables\Filters\Filter;
 use Filament\Tables\Enums\FiltersLayout;
+use Filament\Tables\Filters\Filter;
 use Illuminate\Database\Eloquent\Builder;
+use Filament\Tables\Enums\PaginationMode;
 use Livewire\Component;
 
-class ScrapTableComponent extends Component implements HasActions, HasSchemas, HasTable
+class BackorderData extends Component implements HasForms, HasTable, HasActions
 {
 
-    use InteractsWithActions;
+    use InteractsWithForms;
     use InteractsWithTable;
-    use InteractsWithSchemas;
-
-    public static function calculateScrapRate(Set $set, Get $get): void
-    {
-        $outputFg = (float) $get('output_fg');
-        $scrap = (float) $get('scrap');
-
-        if ($outputFg > 0) {
-            $rate = ($scrap / $outputFg) * 100;
-            $set('scrap_rate_display', number_format($rate, 2) . '');
-        } else {
-            $set('scrap_rate_display', '0');
-        }
-    }
+    use InteractsWithActions;
 
     protected function dataFormSchema(): array
     {
         return [
-            Components\Grid::make(2)
+            Components\Section::make('Data Laporan Backorder')
+                ->description('Masukkan nilai nominal tanpa tanda titik (contoh: 1500000).')
                 ->schema([
+                    Forms\Components\DatePicker::make('tanggal')
+                        ->label('Tanggal')
+                        ->default(now())
+                        ->required()
+                        ->format('Y-m-d')
+                        ->displayFormat('d F Y')
+                        ->disabledOn('edit')
+                        ->disabledDates(function () {
+                            return \App\Models\Backorder::pluck('tanggal')->toArray();
+                        })
+                        ->unique(
+                            table: 'backorders',
+                            column: 'tanggal',
+                            ignoreRecord: true,
+                        )
+                        ->native(false)
+                        ->closeOnDateSelection()
+                        ->columnSpanFull(),
 
-                    Components\Section::make('Section Input Data')
-                        // ->description('Input tanggal dan total output utama harian.')
-                        ->columnSpan(1)
+                    Components\Grid::make(2)
                         ->schema([
-                            Forms\Components\DatePicker::make('tanggal')
-                                ->label('Tanggal')
-                                ->disabledOn('edit')
-                                ->disabledDates(function () {
-                                    return \App\Models\Scrap::pluck('tanggal')->toArray();
-                                })
-                                ->required()
-                                ->native(false)
-                                ->default(now())
-                                ->unique(table: 'scraps', column: 'tanggal', ignoreRecord: true),
-
-                            Forms\Components\TextInput::make('output_fg')
-                                ->default(0)
-                                ->label('Output FG')
-                                ->suffix('Ton Kabel')
+                            Forms\Components\TextInput::make('total_os')
+                                ->label('Total OS')
                                 ->numeric()
-                                ->required()
-                                ->live()
-                                ->afterStateUpdated(fn(Set $set, Get $get) => self::calculateScrapRate($set, $get)),
-                            Forms\Components\TextInput::make('scrap')
+                                ->prefix('Rp')
                                 ->default(0)
-                                ->label('Scrap')
-                                ->suffix('Ton Kabel')
+                                ->mask(RawJs::make('$money($input)'))
+                                ->stripCharacters(',')
+                                ->required(),
+
+                            Forms\Components\TextInput::make('penerimaan_po_so')
+                                ->label('Penerimaan PO-SO')
                                 ->numeric()
-                                ->required()
-                                ->live()
-                                ->afterStateUpdated(fn(Set $set, Get $get) => self::calculateScrapRate($set, $get)),
+                                ->prefix('Rp')
+                                ->default(0)
+                                ->mask(RawJs::make('$money($input)'))
+                                ->stripCharacters(',')
+                                ->required(),
+
+                            Forms\Components\TextInput::make('penjualan')
+                                ->label('Penjualan')
+                                ->numeric()
+                                ->prefix('Rp')
+                                ->default(0)
+                                ->mask(RawJs::make('$money($input)'))
+                                ->stripCharacters(',')
+                                ->required(),
+
+                            Forms\Components\TextInput::make('penerimaan_um')
+                                ->label('Penerimaan - UM')
+                                ->numeric()
+                                ->prefix('Rp')
+                                ->default(0)
+                                ->mask(RawJs::make('$money($input)'))
+                                ->stripCharacters(',')
+                                ->required(),
+
+                            Forms\Components\TextInput::make('lpk')
+                                ->label('LPK')
+                                ->numeric()
+                                ->prefix('Rp')
+                                ->default(0)
+                                ->mask(RawJs::make('$money($input)'))
+                                ->stripCharacters(',')
+                                ->required(),
                         ]),
-
-                    Components\Section::make('Automatis Kalkulasi')
-                        // ->description('Kalkulasi real-time persentase limbah scrap.')
-                        ->columnSpan(1)
-                        ->schema([
-                            Components\Grid::make(2)
-                                ->schema([
-                                    Forms\Components\TextInput::make('scrap_rate_display')
-                                        ->label('Scrap Rate')
-                                        ->extraInputAttributes(['class' => 'font-bold text-primary-600 bg-gray-50 dark:bg-gray-800']) // Membuat teks hasil auto sedikit menonjol
-                                        ->disabled()
-                                        ->default('0,00')
-                                        ->suffix('%')
-                                        ->dehydrated(false),
-
-                                    Forms\Components\TextInput::make('target_scrap')
-                                        ->label('Target Scrap')
-                                        ->extraInputAttributes(['class' => 'font-bold text-primary-600 bg-gray-50 dark:bg-gray-800'])
-                                        ->numeric()
-                                        ->disabled()
-                                        ->default(3.98)
-                                        ->suffix('%')
-                                        ->required(),
-                                ]),
-                        ]),
-
                 ]),
         ];
     }
@@ -116,25 +111,34 @@ class ScrapTableComponent extends Component implements HasActions, HasSchemas, H
     {
         return $table
             ->paginationMode(PaginationMode::Simple)
+            ->query(Backorder::query())
             ->deferFilters(false)
-            ->query(Scrap::query())
             ->defaultSort('tanggal', 'desc')
             ->columns([
-                Tables\Columns\TextColumn::make('tanggal')->label('Tanggal')->date('d-M')->sortable(),
-                Tables\Columns\TextColumn::make('output_fg')->label('Output FG (Ton)')->numeric(2),
-                Tables\Columns\TextColumn::make('scrap')->label('Scrap (Ton)')->numeric(2),
-                Tables\Columns\TextColumn::make('scrap_rate')
-                    ->label('Scrap Rate')
-                    ->state(function ($record) {
-                        return $record->output_fg > 0
-                            ? ($record->scrap / $record->output_fg) * 100
-                            : 0;
-                    })
-                    ->numeric(2)
-                    ->suffix('%')
-                    ->badge()
-                    ->color(fn($record) => ($record->output_fg > 0 ? ($record->scrap / $record->output_fg) * 100 : 0) > $record->target_scrap ? 'danger' : 'success'),
-                Tables\Columns\TextColumn::make('target_scrap')->label('Target')->suffix('%'),
+                Tables\Columns\TextColumn::make('tanggal')
+                    ->label('Tanggal')
+                    ->date('d M Y')
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('total_os')
+                    ->label('Total OS')
+                    ->money('IDR', locale: 'id', decimalPlaces: 0),
+
+                Tables\Columns\TextColumn::make('penerimaan_po_so')
+                    ->label('Penerimaan PO-SO')
+                    ->money('IDR', locale: 'id', decimalPlaces: 0),
+
+                Tables\Columns\TextColumn::make('penjualan')
+                    ->label('Penjualan')
+                    ->money('IDR', locale: 'id', decimalPlaces: 0),
+
+                Tables\Columns\TextColumn::make('penerimaan_um')
+                    ->label('Penerimaan UM')
+                    ->money('IDR', locale: 'id', decimalPlaces: 0),
+
+                Tables\Columns\TextColumn::make('lpk')
+                    ->label('LPK')
+                    ->money('IDR', locale: 'id', decimalPlaces: 0),
             ])
             ->filters([
                 Filter::make('date')
@@ -283,27 +287,22 @@ class ScrapTableComponent extends Component implements HasActions, HasSchemas, H
             ], layout: FiltersLayout::AfterContent)
             ->headerActions([
                 Actions\CreateAction::make()
-                    ->createAnother(false)
-                    ->model(Scrap::class)
+                    ->label('Tambah Data')
+                    ->model(Backorder::class)
                     ->form($this->dataFormSchema())
                     ->slideOver(),
             ])
             ->recordActions([
                 Actions\EditAction::make()
                     ->form($this->dataFormSchema())
-                    ->slideOver()
-                    ->mutateRecordDataUsing(function (array $data): array {
-                        $output = (float) ($data['output_fg'] ?? 0);
-                        $scrap = (float) ($data['scrap'] ?? 0);
-                        $data['scrap_rate_display'] = $output > 0 ? number_format(($scrap / $output) * 100, 2) . '%' : '0%';
-                        return $data;
-                    }),
-                // Actions\DeleteAction::make(),
+                    ->slideOver(),
+                Actions\DeleteAction::make(),
             ]);
     }
 
     public function render()
     {
-        return view('livewire.scrap-table-component');
+        return view('livewire.backorder-data')
+            ->layout('components.layouts.app');
     }
 }
